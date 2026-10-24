@@ -1,0 +1,266 @@
+/* Rental Outdoor Custom Styles - WebView Compatible */
+:root {
+    --ro-primary: #2E7D32;
+    --ro-primary-dark: #1B5E20;
+    --ro-accent: #FF9800;
+    --ro-accent-dark: #F57C00;
+    --ro-background: #F5F5F5;
+    --ro-surface: #FFFFFF;
+    --ro-text-primary: #1D1D1F;
+    --ro-text-secondary: #555555;
+    --ro-border: #E0E0E0;
+    --ro-success: #4CAF50;
+    --ro-warning: #FF9800;
+    --ro-error: #F44336;
+    --ro-info: #2196F3;
+    --ro-white: #FFFFFF;  /* FIXED: was missing */
+}
+
+/* Global styles - minimal override to avoid breaking admin panel */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--ro-background);
+    color: var(--ro-text-primary);
+}
+
+/* Navigation - compact, fixed contrast */
+.header, .navbar, .top-bar, nav, [class*="header"], [class*="navbar"] {
+    background-color: var(--ro-primary) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    min-height: 56px !important;
+    max-height: 64px !important;
+}
+
+.header a, .navbar a, .top-bar a, nav a {
+    color: var(--ro-white) !important;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Fix text visibility - ensure dark text on light, light text on dark */
+.header *, .navbar *, .top-bar *, nav * {
+    color: var(--ro-white) !important;
+    line-height: 1.4;
+}
+
+/* Buttons - compact, no overflow */
+.btn, .button, button, input[type="submit"], input[type="button"], a.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    padding: 8px 16px !important;  /* FIXED: was too big (14px 24px) */
+    font-size: 14px !important;
+    min-height: auto !important;
+    max-height: 44px !important;
+    line-height: 1.3 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Fix button text overlap - search/icon spacing */
+.btn i, .button i, button i,
+.btn .icon, .button .icon, button .icon,
+.btn svg, .button svg, button svg {
+    margin-right: 6px !important;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Search input fix - prevent icon overlapping text */
+.search-container, .search-box, [class*="search"] {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.search-container input, .search-box input,
+input[type="search"], input[name*="search"] {
+    padding-left: 40px !important;  /* Space for search icon */
+    padding-right: 12px !important;
+    height: 40px !important;
+}
+
+.search-container .search-icon, .search-box .search-icon,
+.search-icon, [class*="search-icon"] {
+    position: absolute !important;
+    left: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Sidebar / Drawer - fix green contrast */
+.sidebar, .drawer, [class*="sidebar"], [class*="drawer"],
+.drawer-menu, .side-panel, nav ul, .menu-list {
+    background-color: var(--ro-surface) !important;
+    border-right: 1px solid var(--ro-border);
+}
+
+.sidebar a, .drawer a, [class*="sidebar"] a, [class*="drawer"] a,
+.menu-item, .nav-item, .drawer-menu a {
+    color: var(--ro-text-primary) !important;
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    margin: 2px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.sidebar a:hover, .drawer a:hover, .menu-item:hover, .nav-item:hover {
+    background-color: rgba(46, 125, 50, 0.08) !important;
+    color: var(--ro-primary-dark) !important;
+}
+
+/* Mobile optimizations - compact */
+@media (max-width: 768px) {
+    .btn, .button, button {
+        padding: 8px 14px !important;
+        font-size: 13px !important;
+        min-height: 36px !important;
+    }
+
+    .header, .navbar, .top-bar, nav {
+        min-height: 48px !important;
+        max-height: 52px !important;
+        padding: 0 8px !important;
+    }
+
+    .search-container input, .search-box input {
+        font-size: 14px !important;
+        height: 36px !important;
+        padding-left: 36px !important;
+    }
+
+    /* Bottom nav compact */
+    .bottom-nav, .bottom-bar, [class*="bottom-nav"], [class*="bottom-bar"] {
+        height: 56px !important;
+        min-height: 56px !important;
+        max-height: 56px !important;
+        padding: 4px 0 !important;
+    }
+
+    .bottom-nav a, .bottom-bar a, [class*="bottom-nav"] a {
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+    }
+
+    /* Card compact */
+    .card, .card-body {
+        margin: 6px !important;
+        padding: 12px !important;
+        border-radius: 10px !important;
+    }
+
+    /* Prevent text overflow in navigation */
+    .header h1, .navbar h1, .top-bar h1, nav h1 {
+        font-size: 1.1rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0 !important;
+    }
+}
+
+/* Cards */
+.card, .card-body, [class*="card"] {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid var(--ro-border);
+    background: var(--ro-surface);
+    padding: 16px;
+}
+
+/* Forms */
+input, select, textarea, .form-control, .form-input {
+    border-radius: 8px;
+    border: 1px solid var(--ro-border);
+    padding: 10px 14px;
+    font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    max-width: 100%;
+}
+
+input:focus, select:focus, textarea:focus, .form-control:focus, .form-input:focus {
+    border-color: var(--ro-primary);
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+    outline: none;
+}
+
+/* Fix green sidebar / text hidden */
+.sidebar *, .drawer-menu *, nav ul li a,
+.menu-item, .nav-item {
+    color: var(--ro-text-primary) !important;
+}
+
+/* Links */
+a {
+    color: var(--ro-primary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: var(--ro-primary-dark);
+    text-decoration: underline;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--ro-border);
+}
+
+th {
+    background-color: var(--ro-background);
+    font-weight: 600;
+    color: var(--ro-text-primary);
+}
+
+/* Rental Outdoor specific components */
+.ro-product-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ro-product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.ro-price {
+    color: var(--ro-primary);
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.ro-rating {
+    color: var(--ro-accent);
+}
+
+.ro-status-available { color: var(--ro-success); }
+.ro-status-rented { color: var(--ro-warning); }
+.ro-status-maintenance { color: var(--ro-error); }
+.ro-status-pending { color: var(--ro-info); }
+
+/* Print styles */
+@media print {
+    .no-print, .header, .navbar, .footer, button, .btn {
+        display: none !important;
+    }
+    body {
+        background: white;
+        color: black;
+    }
+    .card, [class*="card"] {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}

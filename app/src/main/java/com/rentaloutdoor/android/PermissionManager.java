@@ -1,4 +1,4 @@
-package mgks.os.swv;
+package com.rentaloutdoor.android;
 
 /*
   Smart WebView v8

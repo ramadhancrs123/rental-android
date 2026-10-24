@@ -1,4 +1,4 @@
-package mgks.os.swv.plugins;
+package com.rentaloutdoor.android.plugins;
 
 /*
   QR/Barcode Scanner Plugin for Smart WebView
@@ -28,10 +28,10 @@ import com.journeyapps.barcodescanner.ScanOptions;
 import java.util.HashMap;
 import java.util.Map;
 
-import mgks.os.swv.Functions;
-import mgks.os.swv.PluginInterface;
-import mgks.os.swv.PluginManager;
-import mgks.os.swv.R;
+import com.rentaloutdoor.android.Functions;
+import com.rentaloutdoor.android.PluginInterface;
+import com.rentaloutdoor.android.PluginManager;
+import com.rentaloutdoor.android.R;
 
 public class QRScannerPlugin implements PluginInterface {
     private static final String TAG = "QRScannerPlugin";

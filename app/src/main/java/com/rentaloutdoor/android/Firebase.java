@@ -1,4 +1,4 @@
-package mgks.os.swv;
+package com.rentaloutdoor.android;
 
 /*
   Smart WebView v8
@@ -37,12 +37,12 @@ public class Firebase extends FirebaseMessagingService {
 	private final String fcm_channel = SWVContext.asw_fcm_channel;
 
 	@Override
-	public void onNewToken(String s) {
-		super.onNewToken(s);
-		Log.d("Firebase", "onNewToken() called"); // Prominent log to confirm if it's called
-		if (!s.isEmpty()) {
-			SWVContext.fcm_token = s;
-			Log.d("TOKEN_REFRESHED", s); // Log the new token
+	public void onNewToken(String token) {
+		super.onNewToken(token);
+		Log.d("Firebase", "onNewToken() called");
+		if (token != null && !token.isEmpty()) {
+			SWVContext.fcm_token = token;
+			Log.d("TOKEN_REFRESHED", "FCM token updated (length: " + token.length() + ")");
 		} else {
 			Log.d("TOKEN_REFRESHED", "NULL >> FAILED");
 		}
@@ -50,24 +50,40 @@ public class Firebase extends FirebaseMessagingService {
 
 	@Override
 	public void onMessageReceived(RemoteMessage message) {
+		String title = null;
+		String body = null;
+		String uri = null;
+		String click_action = "OPEN_URI";
+
 		if (message.getNotification() != null) {
-			String title = message.getNotification().getTitle();
-			String body = message.getNotification().getBody();
-			String uri = message.getData().get("uri");
-			String click_action = message.getNotification().getClickAction();
-
-			// Use default values if null
-			if (uri == null) {
-				uri = SWVContext.ASWV_URL;
+			title = message.getNotification().getTitle();
+			body = message.getNotification().getBody();
+			String notificationClickAction = message.getNotification().getClickAction();
+			if (notificationClickAction != null && !notificationClickAction.isEmpty()) {
+				click_action = notificationClickAction;
 			}
-			if (click_action == null) {
-				click_action = "OPEN_URI";
-			}
-
-			Log.d("FCM_MESSAGE", "Title: " + title + ", Body: " + body + ", URI: " + uri + ", Click Action: " + click_action);
-
-			sendMyNotification(title, body, click_action, uri, message.getData().get("tag"), message.getData().get("nid"), this); // Pass context from here
 		}
+
+		if (message.getData() != null && !message.getData().isEmpty()) {
+			String dataUri = message.getData().get("uri");
+			if (dataUri != null && !dataUri.isEmpty()) {
+				uri = dataUri;
+			}
+			String dataClickAction = message.getData().get("click_action");
+			if (dataClickAction != null && !dataClickAction.isEmpty()) {
+				click_action = dataClickAction;
+			}
+		}
+
+		if (title == null) title = "Notification";
+		if (body == null) body = "";
+		if (uri == null || uri.isEmpty()) {
+			uri = SWVContext.ASWV_URL;
+		}
+
+		Log.d("FCM_MESSAGE", "Title: " + title + ", Body: " + body + ", URI: " + uri + ", Click Action: " + click_action);
+
+		sendMyNotification(title, body, click_action, uri, message.getData().get("tag"), message.getData().get("nid"), this);
 	}
 
 	public void sendMyNotification(String title, String message, String click_action, String uri, String tag, String nid, Context context) {

@@ -1,4 +1,4 @@
-package mgks.os.swv.plugins;
+package com.rentaloutdoor.android.plugins;
 
 /*
   JavaScript Interface Plugin for Smart WebView
@@ -33,10 +33,10 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-import mgks.os.swv.Functions;
-import mgks.os.swv.PluginInterface;
-import mgks.os.swv.PluginManager;
-import mgks.os.swv.SWVContext;
+import com.rentaloutdoor.android.Functions;
+import com.rentaloutdoor.android.PluginInterface;
+import com.rentaloutdoor.android.PluginManager;
+import com.rentaloutdoor.android.SWVContext;
 
 public class JSInterfacePlugin implements PluginInterface {
     private static final String TAG = "JSInterfacePlugin";
@@ -132,6 +132,11 @@ public class JSInterfacePlugin implements PluginInterface {
     }
 
     public class JSBridgeInterface {
+
+        @JavascriptInterface
+        public String getFCMToken() {
+            return SWVContext.fcm_token != null ? SWVContext.fcm_token : "";
+        }
 
         @JavascriptInterface
         public String getDeviceInfo() {

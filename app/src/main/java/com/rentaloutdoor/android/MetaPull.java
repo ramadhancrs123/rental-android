@@ -1,4 +1,4 @@
-package mgks.os.swv;
+package com.rentaloutdoor.android;
 
 /*
   Smart WebView v8
@@ -24,7 +24,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
 
-import mgks.os.swv.BuildConfig;
+import com.rentaloutdoor.android.BuildConfig;
 
 public class MetaPull {
 

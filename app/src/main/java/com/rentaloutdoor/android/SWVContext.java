@@ -1,4 +1,4 @@
-package mgks.os.swv;
+package com.rentaloutdoor.android;
 
 /*
   Smart WebView v8
@@ -30,6 +30,8 @@ import android.webkit.ValueCallback;
 import android.webkit.WebView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatDelegate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -259,6 +261,8 @@ public class SWVContext {
         @Override
         public void onCreate() {
             super.onCreate();
+            // Allow system theme to work - admin panel handles its own theme switching
+            // AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
             // This is the first thing that runs when the app process is created.
             SWVContext.loadConfig(this);
             SWVContext.setAppContext(this);

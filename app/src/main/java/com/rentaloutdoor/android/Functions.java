@@ -1,4 +1,4 @@
-package mgks.os.swv;
+package com.rentaloutdoor.android;
 
 /*
   Smart WebView v8
@@ -427,12 +427,12 @@ public class Functions{
                         set_cookie("FCM_TOKEN=" + token);
                         if (SWVContext.SWV_DEBUGMODE) {
                             Log.d("SLOG_FCM_BAKED", "YES");
-                            Log.d("SLOG_COOKIES", get_cookies(SWVContext.ASWV_URL));
+                            Log.d("SLOG_COOKIES", "Cookie set (FCM token stored in cookie, not logged)");
                         }
                     }
                     SWVContext.fcm_token = token;
                     if (SWVContext.SWV_DEBUGMODE) {
-                        Log.d("SLOG_REQ_FCM_TOKEN", token);
+                        Log.d("SLOG_REQ_FCM_TOKEN", "Token received (length: " + (token != null ? token.length() : 0) + ")");
                     }
                     if (callback != null) callback.onTokenReceived(token);
                 })

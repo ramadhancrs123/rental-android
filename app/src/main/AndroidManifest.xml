@@ -58,7 +58,7 @@
 	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
 	<application
-		android:icon="@mipmap/ic_launcher"
+		android:icon="@drawable/logo_splash"
 		android:name=".SWVContext$App"
 		android:label="@string/app_name"
 		android:supportsRtl="true"
@@ -88,8 +88,7 @@
 				<category android:name="android.intent.category.DEFAULT" />
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="https"
-					android:host="mgks.github.io"
-					android:pathPrefix="/Android-SmartWebView" />
+					android:host="akasha-outdoor.vercel.app" />
 			</intent-filter>
 			<intent-filter android:label="OpenURI">
 				<action android:name="OPEN_URI" />

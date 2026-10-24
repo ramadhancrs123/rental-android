@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<!-- Light Mode Theme -->
-	<color name="colorPrimary">#FFFFFF</color>
-	<color name="colorPrimaryDark">#F0F0F0</color>
-	<color name="colorPrimaryDarker">#EAEAEA</color>
-	<color name="colorAccent">#4AAB33</color>
-	<color name="colorAccentDark">#399623</color>
+	<!-- Rental Outdoor Brand Colors -->
+	<color name="colorPrimary">#2E7D32</color>
+	<color name="colorPrimaryDark">#1B5E20</color>
+	<color name="colorPrimaryDarker">#145218</color>
+	<color name="colorAccent">#FF9800</color>
+	<color name="colorAccentDark">#F57C00</color>
 	<color name="textColorPrimary">#1D1D1F</color>
 	<color name="textColorSecondary">#555555</color>
-	<color name="iconTint">#449a2f</color>
+	<color name="iconTint">#2E7D32</color>
 	<color name="white">#FFFFFF</color>
 	<color name="black">#000000</color>
 </resources>

@@ -1,4 +1,4 @@
-package mgks.os.swv.plugins;
+package com.rentaloutdoor.android.plugins;
 
 /*
   Location Plugin for Smart WebView
@@ -49,11 +49,11 @@ import androidx.core.app.ActivityCompat;
 import java.util.HashMap;
 import java.util.Map;
 
-import mgks.os.swv.Functions;
-import mgks.os.swv.PermissionManager;
-import mgks.os.swv.PluginInterface;
-import mgks.os.swv.PluginManager;
-import mgks.os.swv.SWVContext;
+import com.rentaloutdoor.android.Functions;
+import com.rentaloutdoor.android.PermissionManager;
+import com.rentaloutdoor.android.PluginInterface;
+import com.rentaloutdoor.android.PluginManager;
+import com.rentaloutdoor.android.SWVContext;
 
 public class LocationPlugin implements PluginInterface, LocationListener {
     private static final String TAG = "LocationPlugin";

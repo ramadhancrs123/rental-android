@@ -1,4 +1,4 @@
-package mgks.os.swv.plugins;
+package com.rentaloutdoor.android.plugins;
 
 /*
   Image Compression Plugin for Smart WebView
@@ -28,9 +28,9 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import mgks.os.swv.Functions;
-import mgks.os.swv.PluginInterface;
-import mgks.os.swv.PluginManager;
+import com.rentaloutdoor.android.Functions;
+import com.rentaloutdoor.android.PluginInterface;
+import com.rentaloutdoor.android.PluginManager;
 
 public class ImageCompressionPlugin implements PluginInterface {
     private static final String TAG = "ImageCompressionPlugin";

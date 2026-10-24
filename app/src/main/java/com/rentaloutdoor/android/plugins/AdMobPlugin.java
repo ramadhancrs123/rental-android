@@ -1,4 +1,4 @@
-package mgks.os.swv.plugins;
+package com.rentaloutdoor.android.plugins;
 
 /*
   AdMob Plugin for Smart WebView
@@ -52,10 +52,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import mgks.os.swv.Functions;
-import mgks.os.swv.PluginInterface;
-import mgks.os.swv.PluginManager;
-import mgks.os.swv.R;
+import com.rentaloutdoor.android.Functions;
+import com.rentaloutdoor.android.PluginInterface;
+import com.rentaloutdoor.android.PluginManager;
+import com.rentaloutdoor.android.R;
 
 public class AdMobPlugin implements PluginInterface {
     private static final String TAG = "AdMobPlugin";

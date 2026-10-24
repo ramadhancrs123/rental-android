@@ -1,4 +1,4 @@
-package mgks.os.swv.plugins;
+package com.rentaloutdoor.android.plugins;
 
 /*
   Biometric Authentication Plugin for Smart WebView
@@ -32,11 +32,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-import mgks.os.swv.Functions;
-import mgks.os.swv.PluginInterface;
-import mgks.os.swv.PluginManager;
-import mgks.os.swv.R;
-import mgks.os.swv.SWVContext;
+import com.rentaloutdoor.android.Functions;
+import com.rentaloutdoor.android.MainActivity;
+import com.rentaloutdoor.android.PluginInterface;
+import com.rentaloutdoor.android.PluginManager;
+import com.rentaloutdoor.android.R;
+import com.rentaloutdoor.android.SWVContext;
 
 public class BiometricPlugin implements PluginInterface {
     private static final String TAG = "BiometricPlugin";
@@ -76,6 +77,9 @@ public class BiometricPlugin implements PluginInterface {
         this.securityOverlay = this.activity.findViewById(R.id.security_overlay);
         if (this.securityOverlay == null) {
             Log.e(TAG, "Security overlay with ID 'security_overlay' not found! Biometric lock screen will not function.");
+        } else {
+            // Ensure overlay is hidden by default
+            this.securityOverlay.setVisibility(View.GONE);
         }
         this.retryAuthButton = this.activity.findViewById(R.id.retry_auth_button);
 
@@ -182,8 +186,8 @@ public class BiometricPlugin implements PluginInterface {
     private void showOverlay() {
         if (activity == null) return;
         // Call the helper method in MainActivity to enable FLAG_SECURE
-        if (activity instanceof mgks.os.swv.MainActivity) {
-            ((mgks.os.swv.MainActivity) activity).setWindowSecure(true);
+        if (activity instanceof MainActivity) {
+            ((MainActivity) activity).setWindowSecure(true);
         }
         activity.runOnUiThread(() -> {
             if (securityOverlay != null) securityOverlay.setVisibility(View.VISIBLE);
@@ -195,8 +199,8 @@ public class BiometricPlugin implements PluginInterface {
     private void hideOverlay() {
         if (activity == null) return;
         // Call the helper method in MainActivity to disable FLAG_SECURE
-        if (activity instanceof mgks.os.swv.MainActivity) {
-            ((mgks.os.swv.MainActivity) activity).setWindowSecure(false);
+        if (activity instanceof MainActivity) {
+            ((MainActivity) activity).setWindowSecure(false);
         }
         activity.runOnUiThread(() -> {
             if (securityOverlay != null) securityOverlay.setVisibility(View.GONE);

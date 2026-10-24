@@ -1,4 +1,4 @@
-package mgks.os.swv;
+package com.rentaloutdoor.android;
 
 /*
   Smart WebView v8
@@ -101,7 +101,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Matcher;
 
-import mgks.os.swv.plugins.QRScannerPlugin;
+import com.rentaloutdoor.android.plugins.QRScannerPlugin;
 
 /**
  * Main Activity for Smart WebView
@@ -422,13 +422,37 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // page is a local bundled asset we control. (fixes #387)
         webSettings.setAllowUniversalAccessFromFileURLs(SWVContext.ASWP_OFFLINE || (SWVContext.ASWV_OFFLINE_URL != null && !SWVContext.ASWV_OFFLINE_URL.isEmpty()));
         webSettings.setUseWideViewPort(true);
+        webSettings.setLoadWithOverviewMode(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        
+        // Responsive viewport settings for proper mobile rendering
+        webSettings.setSupportMultipleWindows(false);
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setDatabaseEnabled(true);
+        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        webSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        
+        // Ensure proper touch/click handling for web elements
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        // Allow touch events to pass through to web content
+        webSettings.setSupportZoom(true);
+        webSettings.setBuiltInZoomControls(false);
+        webSettings.setDisplayZoomControls(false);
 
         // Allow third-party cookies for captcha, social logins, etc.
         if (SWVContext.ASWP_ACCEPT_THIRD_PARTY_COOKIES) {
             CookieManager.getInstance().setAcceptThirdPartyCookies(SWVContext.asw_view, true);
         }
+
+        // Ensure proper touch handling for web content (fixes unclickable buttons on mobile)
+        SWVContext.asw_view.setOnTouchListener((v, event) -> {
+            // Request focus for WebView to handle touch events properly
+            v.requestFocus(View.FOCUS_DOWN);
+            return false;
+        });
 
         // Disable copy-paste if configured
         if (!SWVContext.ASWP_COPYPASTE) {
@@ -793,6 +817,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public class WebAppInterface {
         @JavascriptInterface
+        public String getFCMToken() {
+            return SWVContext.fcm_token != null ? SWVContext.fcm_token : "";
+        }
+
+        @JavascriptInterface
         public void setNativeTheme(String theme) {
             runOnUiThread(() -> {
                 int newMode;
@@ -966,15 +995,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             findViewById(R.id.msw_view).setVisibility(View.VISIBLE);
             isPageLoaded = true;
 
+            // Responsive viewport: ensure content fits screen width properly
+            view.getSettings().setLoadWithOverviewMode(true);
+            view.getSettings().setUseWideViewPort(true);
+            view.setInitialScale(1);
+
             // Inject Google Analytics if configured
             if (!url.startsWith("file://") && SWVContext.ASWV_GTAG != null && !SWVContext.ASWV_GTAG.isEmpty()) {
                 fns.inject_gtag(view, SWVContext.ASWV_GTAG);
             }
 
-            // Inject theme preference
-            String theme = SWVContext.ASWP_DARK_MODE ? "dark" : "light";
-            String script = "if(typeof applyInitialTheme === 'function') { applyInitialTheme('" + theme + "'); }";
-            view.evaluateJavascript(script, null);
+            // Admin panel handles its own theme - no forced theme injection
+            // String script = "if(typeof applyInitialTheme === 'function') { applyInitialTheme('light'); }";
+            // view.evaluateJavascript(script, null);
 
             if (SWVContext.ASWP_CUSTOM_CSS) {
                 try {

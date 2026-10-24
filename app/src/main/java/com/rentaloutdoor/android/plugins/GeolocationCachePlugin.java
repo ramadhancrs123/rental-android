@@ -1,4 +1,4 @@
-package mgks.os.swv.plugins;
+package com.rentaloutdoor.android.plugins;
 
 /*
   Geolocation Cache Plugin for Smart WebView
@@ -31,9 +31,9 @@ import androidx.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import mgks.os.swv.Functions;
-import mgks.os.swv.PluginInterface;
-import mgks.os.swv.PluginManager;
+import com.rentaloutdoor.android.Functions;
+import com.rentaloutdoor.android.PluginInterface;
+import com.rentaloutdoor.android.PluginManager;
 
 public class GeolocationCachePlugin implements PluginInterface {
     private static final String TAG = "GeolocationCachePlugin";
