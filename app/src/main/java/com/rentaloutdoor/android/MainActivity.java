@@ -52,6 +52,7 @@ import android.webkit.ConsoleMessage;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
 import android.webkit.ServiceWorkerClient;
 import android.webkit.ServiceWorkerController;
 import android.webkit.SslErrorHandler;
@@ -119,6 +120,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private PermissionManager permissionManager;
     private ActivityResultLauncher<Intent> fileUploadLauncher;
     private ActivityResultLauncher<ScanOptions> qrScannerLauncher;
+    private static final int WEB_CAMERA_PERMISSION_REQUEST_CODE = 7103;
+    private PermissionRequest pendingWebCameraRequest;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
@@ -521,6 +524,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
             @Override
+            public void onPermissionRequest(PermissionRequest request) {
+                // WebView camera access has two permission layers: Android runtime
+                // permission and this per-origin Chromium permission. Grant camera
+                // only to the configured HTTPS app origin.
+                runOnUiThread(() -> handleWebPermissionRequest(request));
+            }
+
+            @Override
+            public void onPermissionRequestCanceled(PermissionRequest request) {
+                if (pendingWebCameraRequest == request) {
+                    pendingWebCameraRequest = null;
+                }
+            }
+
+            @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
                                              FileChooserParams fileChooserParams) {
                 return fileProcessing.onShowFileChooser(webView, filePathCallback, fileChooserParams);
@@ -553,6 +571,56 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
             }
         };
+    }
+
+    private void handleWebPermissionRequest(@NonNull PermissionRequest request) {
+        if (!isTrustedCameraOrigin(request.getOrigin())) {
+            Log.w(TAG, "Denying WebView media permission for untrusted origin.");
+            request.deny();
+            return;
+        }
+
+        boolean requestsVideo = false;
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
+                requestsVideo = true;
+                break;
+            }
+        }
+        if (!requestsVideo) {
+            request.deny();
+            return;
+        }
+
+        if (permissionManager.isCameraPermissionGranted()) {
+            request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            Log.d(TAG, "WebView camera permission granted for trusted app origin.");
+            return;
+        }
+
+        if (pendingWebCameraRequest != null) {
+            pendingWebCameraRequest.deny();
+        }
+        pendingWebCameraRequest = request;
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{Manifest.permission.CAMERA},
+                WEB_CAMERA_PERMISSION_REQUEST_CODE
+        );
+    }
+
+    private boolean isTrustedCameraOrigin(Uri origin) {
+        if (origin == null || !"https".equalsIgnoreCase(origin.getScheme())) {
+            return false;
+        }
+        Uri configuredAppUri = Uri.parse(SWVContext.ASWV_URL == null ? "" : SWVContext.ASWV_URL);
+        String configuredHost = configuredAppUri.getHost();
+        String requestedHost = origin.getHost();
+        if (configuredHost == null || requestedHost == null) {
+            return false;
+        }
+        return configuredHost.equalsIgnoreCase(requestedHost)
+                && configuredAppUri.getPort() == origin.getPort();
     }
 
     /**
@@ -750,7 +818,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         fns.fcm_token(new Functions.TokenCallback() {
             @Override
             public void onTokenReceived(String token) {
-                Log.d(TAG, "FCM Token received: " + token);
+                Log.d(TAG, "FCM Token received (length: " + (token != null ? token.length() : 0) + ")");
             }
 
             @Override
@@ -939,6 +1007,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         SWVContext.getPluginManager().onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == WEB_CAMERA_PERMISSION_REQUEST_CODE) {
+            PermissionRequest request = pendingWebCameraRequest;
+            pendingWebCameraRequest = null;
+            if (request != null) {
+                boolean granted = grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                        && permissionManager.isCameraPermissionGranted()
+                        && isTrustedCameraOrigin(request.getOrigin());
+                if (granted) {
+                    request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                    Log.d(TAG, "WebView camera permission granted for trusted app origin.");
+                } else {
+                    request.deny();
+                    Log.w(TAG, "WebView camera permission denied.");
+                }
+            }
+            return;
+        }
 
         if (requestCode == PermissionManager.INITIAL_REQUEST_CODE) {
             for (int i = 0; i < permissions.length; i++) {

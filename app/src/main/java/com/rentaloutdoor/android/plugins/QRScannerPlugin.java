@@ -25,6 +25,8 @@ import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanIntentResult;
 import com.journeyapps.barcodescanner.ScanOptions;
 
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,9 +68,12 @@ public class QRScannerPlugin implements PluginInterface {
             String script = "if(window.QRScanner && window.QRScanner.onScanCancelled) { window.QRScanner.onScanCancelled(); }";
             evaluateJavascript(script);
         } else {
-            Log.d(TAG, "Scanned QR/Barcode: " + contents);
-            // Use String.format to prevent JS injection issues
-            String script = String.format("if(window.QRScanner && window.QRScanner.onScanSuccess) { window.QRScanner.onScanSuccess('%s'); }", contents);
+            // Do not write QR payloads (which may contain active tokens) to Logcat.
+            Log.d(TAG, "QR/Barcode scan completed.");
+            // Quote the payload as a JavaScript string so QR contents containing
+            // quotes, slashes, or newlines cannot break the callback expression.
+            String script = "if(window.QRScanner && window.QRScanner.onScanSuccess) { window.QRScanner.onScanSuccess("
+                    + JSONObject.quote(contents) + "); }";
             evaluateJavascript(script);
         }
     }
