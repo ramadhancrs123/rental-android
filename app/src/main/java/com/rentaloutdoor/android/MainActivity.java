@@ -1142,6 +1142,37 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 nestedScrollContainerActive = active;
             }
         }
+
+        /**
+         * Mulai/perbarui notifikasi denda berjalan untuk sebuah penyewaan.
+         * Payload JSON: { rentalId, nomor, enabled, ratePerHour, currencyCode,
+         *                 jadwalKembali, toleranceDeadline, actualReturn }
+         * Formula native identik calculate_rental_late_fee (ceil per jam).
+         */
+        @JavascriptInterface
+        public void startRentalFine(String payloadJson) {
+            try {
+                org.json.JSONObject payload = new org.json.JSONObject(payloadJson);
+                RentalFineManager.start(MainActivity.this, payload);
+            } catch (Exception e) {
+                Log.w(TAG, "startRentalFine payload tidak valid", e);
+            }
+        }
+
+        /** Batalkan notifikasi denda (dipanggil saat pengembalian selesai/tidak ada denda). */
+        @JavascriptInterface
+        public void stopRentalFine(String rentalId) {
+            RentalFineManager.stop(MainActivity.this, rentalId);
+        }
+
+        /** State denda aktif sebagai JSON (untuk rehidrasi UI web). */
+        @JavascriptInterface
+        public String getActiveRentalFine() {
+            android.content.SharedPreferences prefs =
+                    getSharedPreferences("rental_fine_state", 0);
+            if (prefs.getAll().isEmpty()) return "{}";
+            return new org.json.JSONObject(prefs.getAll()).toString();
+        }
     }
 
     // Standard activity lifecycle methods
