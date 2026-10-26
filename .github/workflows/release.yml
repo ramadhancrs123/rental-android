@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -84,7 +84,7 @@ jobs:
           cp app/build/outputs/bundle/release/app-release.aab "RentalOutdoor-${TAG}.aab"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-bundle
           path: |
@@ -92,7 +92,7 @@ jobs:
             RentalOutdoor-*.aab
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.reltag.outputs.tag }}
           files: |
