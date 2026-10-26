@@ -19,6 +19,11 @@ local.properties
 # google config files
 google-services.json
 
+# keystore
+keystore.properties
+*.jks
+*.keystore
+
 # Windows thumbnail db
 Thumbs.db
 

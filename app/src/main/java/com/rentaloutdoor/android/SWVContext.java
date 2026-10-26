@@ -233,7 +233,7 @@ public class SWVContext {
         ASWV_GTAG = config.getString("analytics.gtag.id", "G-7XXC1C7CRQ");
 
         // --- Plugins & Permissions ---
-        ASWP_ENABLED_PLUGINS = config.getStringArray("plugins.enabled", new String[]{"RatingPlugin","LocationPlugin","GeolocationCachePlugin","NetworkInfoPlugin","ClipboardPlugin","SharePlugin","DialogPlugin","AdMobPlugin","JSInterfacePlugin","ToastPlugin","QRScannerPlugin","BiometricPlugin","ImageCompressionPlugin"});
+        ASWP_ENABLED_PLUGINS = config.getStringArray("plugins.enabled", new String[]{"RatingPlugin","LocationPlugin","GeolocationCachePlugin","NetworkInfoPlugin","ClipboardPlugin","SharePlugin","DialogPlugin","JSInterfacePlugin","ToastPlugin","QRScannerPlugin","BiometricPlugin","ImageCompressionPlugin"});
         SWV_PLAYGROUND = config.getBoolean("plugins.playground.enabled", true);
         ASWP_REQUIRED_PERMISSIONS = config.getStringArray("permissions.on.launch", new String[]{"NOTIFICATIONS", "LOCATION"});
         // Plugin Configurations
@@ -313,7 +313,6 @@ public class SWVContext {
         // The complete list of available plugin classes in the project.
         // (Plugins self-register via Class.forName() which triggers their static block.)
         String[] pluginClasses = {
-            "mgks.os.swv.plugins.AdMobPlugin",
             "mgks.os.swv.plugins.BiometricPlugin",
             "mgks.os.swv.plugins.ClipboardPlugin",
             "mgks.os.swv.plugins.DialogPlugin",

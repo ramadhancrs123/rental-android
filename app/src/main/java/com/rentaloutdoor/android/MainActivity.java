@@ -26,6 +26,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.SearchManager;
 import android.content.ClipData;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -40,6 +41,10 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.print.PrintAttributes;
+import android.print.PrintJob;
+import android.print.PrintManager;
+import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -65,6 +70,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -97,7 +103,10 @@ import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanIntentResult;
 import com.journeyapps.barcodescanner.ScanOptions;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -122,6 +131,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ActivityResultLauncher<ScanOptions> qrScannerLauncher;
     private static final int WEB_CAMERA_PERMISSION_REQUEST_CODE = 7103;
     private PermissionRequest pendingWebCameraRequest;
+    private volatile boolean nestedScrollContainerActive = false;
+    private volatile String currentMainPageUrl;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
@@ -482,6 +493,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void setupDownloadListener() {
         SWVContext.asw_view.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            Uri downloadUri = Uri.parse(url);
+            String scheme = downloadUri.getScheme();
+            if ("blob".equalsIgnoreCase(scheme)) {
+                // Android DownloadManager cannot consume blob: URLs. PDF blobs from
+                // the trusted admin are saved through AndroidInterface.savePdfFromBase64.
+                Log.w(TAG, "Ignored unsupported blob download; use the native PDF bridge.");
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                        "Unduhan ini perlu disiapkan ulang dari tombol PDF.", Toast.LENGTH_LONG).show());
+                return;
+            }
+            if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
+                Log.w(TAG, "Ignored unsupported download URI scheme.");
+                Toast.makeText(this, "Jenis unduhan ini tidak didukung.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
             // We only need storage permission for downloads on older Android versions.
             // On modern Android, DownloadManager handles it. But a check is still good practice.
             if (!permissionManager.isStoragePermissionGranted()) {
@@ -609,6 +636,148 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         );
     }
 
+    private boolean isTrustedAppPage() {
+        String activeUrl = currentMainPageUrl;
+        if (activeUrl == null) return false;
+        Uri current = Uri.parse(activeUrl);
+        Uri configured = Uri.parse(SWVContext.ASWV_URL == null ? "" : SWVContext.ASWV_URL);
+        return "https".equalsIgnoreCase(current.getScheme())
+                && "https".equalsIgnoreCase(configured.getScheme())
+                && current.getHost() != null
+                && current.getHost().equalsIgnoreCase(configured.getHost())
+                && current.getPort() == configured.getPort();
+    }
+
+    private String safePdfFileName(String suppliedName) {
+        String name = suppliedName == null ? "rental-receipt-58mm.pdf" : suppliedName;
+        name = name.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (name.length() > 120) name = name.substring(name.length() - 120);
+        if (!name.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) name += ".pdf";
+        return name;
+    }
+
+    private boolean savePdfPayload(String base64Payload, String suppliedName) {
+        if (!isTrustedAppPage() || base64Payload == null || base64Payload.length() > 32 * 1024 * 1024) {
+            Log.w(TAG, "Rejected PDF save request: untrusted origin or invalid payload size.");
+            return false;
+        }
+
+        Uri destination = null;
+        try {
+            byte[] bytes = Base64.decode(base64Payload, Base64.DEFAULT);
+            if (bytes.length < 5 || !"%PDF-".equals(new String(bytes, 0, 5, java.nio.charset.StandardCharsets.US_ASCII))) {
+                Log.w(TAG, "Rejected PDF save request: invalid PDF signature.");
+                return false;
+            }
+
+            String fileName = safePdfFileName(suppliedName);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                destination = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (destination == null) throw new java.io.IOException("Tidak dapat membuat berkas di Downloads.");
+
+                try (OutputStream output = getContentResolver().openOutputStream(destination)) {
+                    if (output == null) throw new java.io.IOException("Tidak dapat menulis berkas PDF.");
+                    output.write(bytes);
+                    output.flush();
+                }
+                ContentValues published = new ContentValues();
+                published.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                getContentResolver().update(destination, published, null, null);
+            } else {
+                if (!permissionManager.isStoragePermissionGranted()) {
+                    Log.w(TAG, "PDF save requires legacy storage permission.");
+                    return false;
+                }
+                File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (!downloads.exists() && !downloads.mkdirs()) throw new java.io.IOException("Folder Downloads tidak tersedia.");
+                File outputFile = new File(downloads, fileName);
+                try (FileOutputStream output = new FileOutputStream(outputFile)) {
+                    output.write(bytes);
+                    output.flush();
+                }
+                destination = Uri.fromFile(outputFile);
+            }
+
+            runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "PDF disimpan di Downloads/" + safePdfFileName(suppliedName), Toast.LENGTH_LONG).show());
+            Log.d(TAG, "PDF saved to Downloads.");
+            return true;
+        } catch (Exception error) {
+            if (destination != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try { getContentResolver().delete(destination, null, null); } catch (Exception ignored) { }
+            }
+            Log.e(TAG, "Failed to save PDF from trusted WebView.", error);
+            runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "PDF gagal disimpan. Silakan coba lagi.", Toast.LENGTH_LONG).show());
+            return false;
+        }
+    }
+
+    private void startThermalPrint(String html, String documentName) {
+        ViewGroup content = findViewById(android.R.id.content);
+        if (content == null) {
+            Toast.makeText(this, "Area cetak tidak tersedia.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        final WebView printView = new WebView(this);
+        printView.setAlpha(0.01f);
+        printView.setClickable(false);
+        printView.setFocusable(false);
+        printView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        printView.getSettings().setJavaScriptEnabled(false);
+        content.addView(printView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        final boolean[] submitted = {false};
+
+        printView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (submitted[0]) return;
+                submitted[0] = true;
+                try {
+                    PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                    if (printManager == null) throw new IllegalStateException("Layanan cetak tidak tersedia.");
+                    String safeName = documentName == null ? "Struk Penyewaan" : documentName.replaceAll("[^A-Za-z0-9 _.-]", "_");
+                    PrintAttributes attributes = new PrintAttributes.Builder()
+                            .setMediaSize(new PrintAttributes.MediaSize("AKASHA_THERMAL_58MM", "Thermal 58 mm", 2283, 7874))
+                            .setColorMode(PrintAttributes.COLOR_MODE_MONOCHROME)
+                            .setMinMargins(new PrintAttributes.Margins(0, 0, 0, 0))
+                            .build();
+                    PrintJob job = printManager.print(safeName, view.createPrintDocumentAdapter(safeName), attributes);
+                    Handler monitor = new Handler(Looper.getMainLooper());
+                    monitor.postDelayed(new Runnable() {
+                        private int attempts = 0;
+                        @Override public void run() {
+                            if (job.isCompleted() || job.isFailed() || job.isCancelled() || attempts++ >= 180) {
+                                try {
+                                    view.stopLoading();
+                                    content.removeView(view);
+                                    view.destroy();
+                                } catch (Exception ignored) { }
+                            } else {
+                                monitor.postDelayed(this, 1000);
+                            }
+                        }
+                    }, 1000);
+                } catch (Exception error) {
+                    Log.e(TAG, "Could not start thermal receipt printing.", error);
+                    Toast.makeText(MainActivity.this, "Cetak gagal disiapkan. Periksa layanan printer.", Toast.LENGTH_LONG).show();
+                    content.removeView(view);
+                    view.destroy();
+                }
+            }
+        });
+
+        printView.loadDataWithBaseURL(SWVContext.ASWV_URL, html, "text/html", "UTF-8", null);
+        Toast.makeText(this, "Menyiapkan dialog cetak…", Toast.LENGTH_SHORT).show();
+    }
+
     private boolean isTrustedCameraOrigin(Uri origin) {
         if (origin == null || !"https".equalsIgnoreCase(origin.getScheme())) {
             return false;
@@ -626,6 +795,44 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     /**
      * Setup various features based on configuration
      */
+    private void installNestedScrollGuard(WebView view, String url) {
+        if (view == null || view != SWVContext.asw_view || url == null) return;
+        Uri current = Uri.parse(url);
+        Uri configured = Uri.parse(SWVContext.ASWV_URL == null ? "" : SWVContext.ASWV_URL);
+        if (!"https".equalsIgnoreCase(current.getScheme())
+                || current.getHost() == null
+                || !current.getHost().equalsIgnoreCase(configured.getHost())
+                || current.getPort() != configured.getPort()) {
+            nestedScrollContainerActive = false;
+            return;
+        }
+
+        String script =
+                "(function(){"
+                + "if(window.__akashaNestedScrollGuardInstalled)return;"
+                + "window.__akashaNestedScrollGuardInstalled=true;"
+                + "window.__akashaNestedScrollTouch=false;"
+                + "function setNative(active){try{if(window.AndroidInterface&&window.AndroidInterface.setNestedScrollContainerActive){window.AndroidInterface.setNestedScrollContainerActive(!!active);}}catch(e){}}"
+                + "function findScrollable(node){"
+                + "while(node&&node!==document.documentElement&&node!==document.body){"
+                + "if(node instanceof HTMLElement){"
+                + "var s=window.getComputedStyle(node);"
+                + "var overflow=(s.overflowY||s.overflow||'').toLowerCase();"
+                + "if((overflow==='auto'||overflow==='scroll'||overflow==='overlay')&&node.clientHeight>0&&node.scrollHeight>node.clientHeight+2)return node;"
+                + "}"
+                + "node=node.parentElement;"
+                + "}return null;}"
+                + "document.addEventListener('touchstart',function(e){"
+                + "var nested=!!findScrollable(e.target);window.__akashaNestedScrollTouch=nested;setNative(nested);"
+                + "},true);"
+                + "function endTouch(){window.setTimeout(function(){window.__akashaNestedScrollTouch=false;setNative(false);},100);}"
+                + "document.addEventListener('touchend',endTouch,true);"
+                + "document.addEventListener('touchcancel',endTouch,true);"
+                + "document.addEventListener('scroll',function(e){if(window.__akashaNestedScrollTouch&&e.target!==document&&e.target!==document.documentElement&&e.target!==document.body)setNative(true);},true);"
+                + "})();";
+        view.evaluateJavascript(script, null);
+    }
+
     private void setupFeatures() {
         // Setup service worker if supported
         ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
@@ -782,6 +989,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         final SwipeRefreshLayout pullRefresh = findViewById(R.id.pullfresh);
 
         if (SWVContext.ASWP_PULLFRESH) {
+            // A WebView's scrollY stays at zero when the user is scrolling a nested
+            // sidebar/menu. Tell SwipeRefreshLayout not to intercept that gesture.
+            pullRefresh.setOnChildScrollUpCallback((parent, child) ->
+                    nestedScrollContainerActive
+                            || (SWVContext.asw_view != null && SWVContext.asw_view.canScrollVertically(-1)));
+
             pullRefresh.setOnRefreshListener(() -> {
                 // Pass the current activity context to the pull_fresh method
                 fns.pull_fresh(MainActivity.this);
@@ -904,6 +1117,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     AppCompatDelegate.setDefaultNightMode(newMode);
                 }
             });
+        }
+
+        @JavascriptInterface
+        public boolean savePdfFromBase64(String base64Payload, String fileName) {
+            return savePdfPayload(base64Payload, fileName);
+        }
+
+        @JavascriptInterface
+        public boolean printThermalHtml(String html, String documentName) {
+            if (!isTrustedAppPage() || html == null || html.length() > 2 * 1024 * 1024
+                    || !html.toLowerCase(java.util.Locale.ROOT).contains("<html")
+                    || !html.contains("@page") || html.toLowerCase(java.util.Locale.ROOT).contains("<script")) {
+                Log.w(TAG, "Rejected thermal print request from untrusted page or invalid document.");
+                return false;
+            }
+            runOnUiThread(() -> startThermalPrint(html, documentName));
+            return true;
+        }
+
+        @JavascriptInterface
+        public void setNestedScrollContainerActive(boolean active) {
+            if (isTrustedAppPage()) {
+                nestedScrollContainerActive = active;
+            }
         }
     }
 
@@ -1068,6 +1305,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
+            if (view == SWVContext.asw_view) currentMainPageUrl = url;
             SWVContext.getPluginManager().onPageStarted(url);
 
         }
@@ -1077,6 +1315,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             super.onPageFinished(view, url);
 
             SWVContext.getPluginManager().onPageFinished(url);
+            installNestedScrollGuard(view, url);
 
             findViewById(R.id.msw_welcome).setVisibility(View.GONE);
             findViewById(R.id.msw_view).setVisibility(View.VISIBLE);

@@ -71,16 +71,6 @@ public class Playground {
             }
         });
 
-        // AdMobPlugin Configuration
-        runPluginAction("AdMobPlugin", plugin -> {
-            Map<String, Object> config = SWVContext.getPluginManager().getPluginConfig("AdMobPlugin");
-            if (config != null) {
-                config.put("bannerAdUnitId", "ca-app-pub-3940256099942544/6300978111");
-                config.put("interstitialAdUnitId", "ca-app-pub-3940256099942544/1033173712");
-                config.put("rewardedAdUnitId", "ca-app-pub-3940256099942544/5224354917");
-            }
-        });
-
         // ... (add other plugin configurations here)
     }
 
@@ -129,15 +119,6 @@ public class Playground {
                 Log.i(TAG, "SUCCESS: JSInterfacePlugin is available.");
             });
 
-            // Test for AdMobPlugin
-            runPluginDiagnostic("AdMobPlugin", plugin -> {
-                LinearLayout adContainer = activity.findViewById(R.id.msw_ad_container);
-                if (adContainer != null) {
-                    adContainer.setVisibility(View.VISIBLE);
-                    Log.i(TAG, "SUCCESS: AdMobPlugin is available, showing ad container.");
-                }
-            });
-
             // Generic presence check for other plugins
             runPluginDiagnostic("QRScannerPlugin", plugin -> Log.i(TAG, "SUCCESS: QRScannerPlugin is available."));
             runPluginDiagnostic("BiometricPlugin", plugin -> Log.i(TAG, "SUCCESS: BiometricPlugin is available."));
@@ -164,7 +145,6 @@ public class Playground {
             pluginStatus.put("JSInterfacePlugin", manager.getPluginInstance("JSInterfacePlugin") != null);
             pluginStatus.put("QRScannerPlugin", manager.getPluginInstance("QRScannerPlugin") != null);
             pluginStatus.put("BiometricPlugin", manager.getPluginInstance("BiometricPlugin") != null);
-            pluginStatus.put("AdMobPlugin", manager.getPluginInstance("AdMobPlugin") != null);
             pluginStatus.put("DialogPlugin", manager.getPluginInstance("DialogPlugin") != null);
         } catch (JSONException e) {
             Log.e(TAG, "Error creating plugin status JSON", e);
@@ -206,9 +186,6 @@ public class Playground {
                 "  const buttons = [\n" +
                 "    { text: 'Show Toast', action: `window.Toast && window.Toast.show('Hello from the web!')`, plugin: 'ToastPlugin' },\n" +
                 "    { text: 'Get Device Info', action: `alert(window.JSBridge ? window.JSBridge.getDeviceInfo() : 'JSBridge not found')`, plugin: 'JSInterfacePlugin' },\n" +
-                "    { text: 'Show Banner Ad', action: `window.AdMob && window.AdMob.showBanner()`, plugin: 'AdMobPlugin' },\n" +
-                "    { text: 'Show Interstitial Ad', action: `window.AdMob && window.AdMob.showInterstitial()`, plugin: 'AdMobPlugin' },\n" +
-                "    { text: 'Show Rewarded Ad', action: `window.AdMob && window.AdMob.showRewarded()`, plugin: 'AdMobPlugin' },\n" +
                 "    { text: 'Scan QR Code', action: `if(window.QRScanner){window.QRScanner.onScanSuccess=function(c){alert('Scanned: '+c)};window.QRScanner.scan();}`, plugin: 'QRScannerPlugin' },\n" +
                 "    { text: 'Biometric Auth', action: `if(window.Biometric){window.Biometric.onAuthSuccess=function(){alert('Auth OK!')};window.Biometric.authenticate();}`, plugin: 'BiometricPlugin' },\n" +
                 "    { text: 'Show Native Dialog', action: `window.Dialog && window.Dialog.show({ title: 'Native Dialog', message: 'This was triggered from the web.', positiveText: 'Awesome!' }, (result) => alert('Dialog closed with: ' + result))`, plugin: 'DialogPlugin' }\n" +

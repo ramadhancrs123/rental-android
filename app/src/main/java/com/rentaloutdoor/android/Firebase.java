@@ -106,7 +106,7 @@ public class Firebase extends FirebaseMessagingService {
 
 		// Build the notification
 		NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, fcm_channel)
-			.setSmallIcon(R.mipmap.ic_launcher) // Use a specific notification icon if available
+			.setSmallIcon(R.drawable.ic_notification) // Use monochromatic notification icon
 			.setContentTitle(title) // Remove notification ID from title
 			.setContentText(message)
 			.setAutoCancel(true)

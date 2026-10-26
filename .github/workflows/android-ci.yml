@@ -30,7 +30,12 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Lint & Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew lintRelease testDebugUnitTest --no-daemon
+
+      - name: Debug Lint Summary
+        if: always()
+        run: |
+          ls app/build/reports/ 2>/dev/null || echo "No reports"
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon

@@ -32,6 +32,17 @@ def getSwvProperties() {
 }
 def swvProps = getSwvProperties()
 
+// Load keystore properties if file exists (relative to project root)
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+def hasKeystore = false
+if (keystorePropsFile.exists()) {
+	keystoreProps.load(new FileInputStream(keystorePropsFile))
+	hasKeystore = true
+} else {
+	println "WARNING: keystore.properties not found at ${keystorePropsFile.absolutePath}. Release build will be unsigned."
+}
+
 android {
 	namespace = swvProps.getProperty('build.application.id', 'mgks.os.swv')
 	compileSdk = swvProps.getProperty('build.sdk.compile', '36').toInteger()
@@ -44,11 +55,25 @@ android {
 		versionName = swvProps.getProperty('build.version.name', '1.0')
 	}
 
+	signingConfigs {
+		release {
+			if (hasKeystore) {
+				storeFile = rootProject.file(keystoreProps['storeFile'])
+				storePassword = keystoreProps['storePassword']
+				keyAlias = keystoreProps['keyAlias']
+				keyPassword = keystoreProps['keyPassword']
+			}
+		}
+	}
+
 	buildTypes {
 		release {
 			minifyEnabled = true
 			shrinkResources = true
 			proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+			if (hasKeystore) {
+				signingConfig signingConfigs.release
+			}
 		}
 		debug {
 			minifyEnabled = false
@@ -84,7 +109,6 @@ dependencies {
 
 	// Google Play Services
 	implementation 'com.google.android.gms:play-services-auth:22.0.0'
-	implementation 'com.google.android.gms:play-services-ads:25.5.0'
 	implementation 'com.google.android.gms:play-services-location:21.4.0'
 
 	// AndroidX & Material UI

@@ -29,11 +29,9 @@
 -keep class com.google.firebase.messaging.** { *; }
 -dontwarn com.google.firebase.**
 
-# --- Google Play Services (Ads, Auth, Location) ---
+# --- Google Play Services (Auth, Location) ---
 -keep class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
--keep public class com.google.android.gms.ads.** { public *; }
--dontwarn com.google.android.gms.ads.**
 
 # --- ZXing (QR Scanner) ---
 -keep class com.journeyapps.** { *; }
