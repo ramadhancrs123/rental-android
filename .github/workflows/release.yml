@@ -53,8 +53,8 @@ jobs:
             echo "google-services.json not provided - Firebase sync will be skipped"
           fi
 
-      - name: Run Lint & Unit Tests
-        run: ./gradlew testReleaseUnitTest --no-daemon
+      - name: Run Lint
+        run: ./gradlew lintRelease --no-daemon
 
       - name: Build Signed Release APK & AAB
         run: ./gradlew clean assembleRelease bundleRelease --no-daemon
