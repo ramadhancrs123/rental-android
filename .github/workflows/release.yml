@@ -38,12 +38,10 @@ jobs:
           fi
           mkdir -p keystore
           echo "$KEYSTORE_BASE64" | base64 --decode > keystore/release.jks
-          cat > keystore.properties <<EOF
-          storeFile=keystore/release.jks
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
+          printf 'storeFile=keystore/release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "${{ secrets.KEYSTORE_PASSWORD }}" \
+            "${{ secrets.KEY_ALIAS }}" \
+            "${{ secrets.KEY_PASSWORD }}" > keystore.properties
 
       - name: Decode google-services.json (optional)
         env:
