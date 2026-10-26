@@ -64,12 +64,24 @@ jobs:
           APK_PATH=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
           $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs "$APK_PATH"
 
+      - name: Determine Release Tag
+        id: reltag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            VERSION=$(grep '^build.version.name=' app/src/main/assets/swv.properties | cut -d'=' -f2-)
+            TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $TAG"
+
       - name: Rename Artifacts
         env:
-          VERSION: ${{ github.ref_name }}
+          TAG: ${{ steps.reltag.outputs.tag }}
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "RentalOutdoor-${VERSION}.apk"
-          cp app/build/outputs/bundle/release/app-release.aab "RentalOutdoor-${VERSION}.aab"
+          cp app/build/outputs/apk/release/app-release.apk "RentalOutdoor-${TAG}.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "RentalOutdoor-${TAG}.aab"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -82,6 +94,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.reltag.outputs.tag }}
           files: |
             RentalOutdoor-*.apk
             RentalOutdoor-*.aab
