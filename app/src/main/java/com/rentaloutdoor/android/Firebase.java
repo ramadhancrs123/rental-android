@@ -36,6 +36,38 @@ public class Firebase extends FirebaseMessagingService {
 
 	private final String fcm_channel = SWVContext.asw_fcm_channel;
 
+	/**
+	 * Terjemahkan sinyal silent FCM (kind=rental_fine_start / rental_fine_stop)
+	 * menjadi perintah RentalFineManager. Field payload identik dengan bridge
+	 * web (startRentalFine) sehingga backend dan WebView mengendalikan notifikasi
+	 * yang sama dengan formula denda yang sama.
+	 */
+	private static void handleRentalFineSignal(String kind, java.util.Map<String, String> data, Context context) {
+		try {
+			if ("rental_fine_stop".equals(kind)) {
+				RentalFineManager.stop(context, data.get("rentalId"));
+				return;
+			}
+			if ("rental_fine_start".equals(kind)) {
+				org.json.JSONObject payload = new org.json.JSONObject();
+				for (String key : java.util.Arrays.asList(
+					"rentalId", "nomor", "jadwalKembali", "toleranceDeadline",
+					"actualReturn", "currencyCode")) {
+					String value = data.get(key);
+					if (value != null) payload.put(key, value);
+				}
+				String rate = data.get("ratePerHour");
+				if (rate != null && !rate.isEmpty()) payload.put("ratePerHour", Double.parseDouble(rate));
+				String enabled = data.get("enabled");
+				payload.put("enabled", "true".equalsIgnoreCase(enabled));
+				RentalFineManager.start(context, payload);
+				Log.d("Firebase", "rental_fine_start handled for " + payload.optString("rentalId"));
+			}
+		} catch (Exception e) {
+			Log.e("Firebase", "rental fine signal gagal diproses", e);
+		}
+	}
+
 	@Override
 	public void onNewToken(String token) {
 		super.onNewToken(token);
@@ -50,6 +82,17 @@ public class Firebase extends FirebaseMessagingService {
 
 	@Override
 	public void onMessageReceived(RemoteMessage message) {
+		// Native rental-fine signals (silent data-only) drive the persistent
+		// status-bar fine banner; they must never build a visible app push.
+		java.util.Map<String, String> data = message.getData();
+		if (data != null && !data.isEmpty()) {
+			String kind = data.get("kind");
+			if (kind != null && kind.startsWith("rental_fine")) {
+				handleRentalFineSignal(kind, data, this);
+				return;
+			}
+		}
+
 		String title = null;
 		String body = null;
 		String uri = null;
