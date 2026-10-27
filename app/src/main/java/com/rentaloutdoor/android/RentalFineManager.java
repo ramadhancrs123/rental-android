@@ -276,20 +276,32 @@ public class RentalFineManager {
 	// Helpers
 	// ---------------------------------------------------------------
 
-	/** iOS/RFC3339 dengan/atau tanpa offset -> epoch millis (parse sederhana). */
+	/** RFC3339/ISO-8601 -> epoch millis. Tahan banting: fraaksi >3 digit
+	 *  dipotong, offset "+00:00" dinormalkan ke "Z", lalu coba pola umum
+	 *  (X utk +0000/Z, XXX utk +07:00). */
 	private static Long parseIso(String iso) {
 		if (iso == null || iso.isEmpty()) return null;
-		try {
-			return new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US).parse(iso).getTime();
-		} catch (Exception ignored) {
-			// fallback tanpa milis
+		String s = iso.trim()
+			.replaceFirst("\\.(\\d{3})\\d+", ".$1")
+			.replaceAll("\\+00:00$", "Z")
+			.replaceAll("-00:00$", "Z");
+		String[] patterns = {
+			"yyyy-MM-dd'T'HH:mm:ss.SSSX",
+			"yyyy-MM-dd'T'HH:mm:ssX",
+			"yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+			"yyyy-MM-dd'T'HH:mm:ssXXX",
+		};
+		for (String pattern : patterns) {
 			try {
-				return new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US).parse(iso).getTime();
-			} catch (Exception e) {
-				Log.e(TAG, "parseIso gagal: " + iso, e);
-				return null;
+				java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat(pattern, Locale.US);
+				fmt.setLenient(false);
+				return fmt.parse(s).getTime();
+			} catch (Exception ignored) {
+				// pola berikutnya
 			}
 		}
+		Log.e(TAG, "parseIso gagal: " + iso);
+		return null;
 	}
 
 	/** normalisasi null/undefined string ke null. */
