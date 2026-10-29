@@ -496,11 +496,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Uri downloadUri = Uri.parse(url);
             String scheme = downloadUri.getScheme();
             if ("blob".equalsIgnoreCase(scheme)) {
-                // Android DownloadManager cannot consume blob: URLs. PDF blobs from
-                // the trusted admin are saved through AndroidInterface.savePdfFromBase64.
-                Log.w(TAG, "Ignored unsupported blob download; use the native PDF bridge.");
+                // Android DownloadManager cannot consume blob: URLs. PDF/XLSX files from
+                // the trusted admin are saved through the native AndroidInterface bridge.
+                Log.w(TAG, "Ignored unsupported blob download; use the native export bridge.");
                 runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                        "Unduhan ini perlu disiapkan ulang dari tombol PDF.", Toast.LENGTH_LONG).show());
+                        "Unduhan perlu dimulai dari tombol ekspor di halaman aplikasi.", Toast.LENGTH_LONG).show());
                 return;
             }
             if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
@@ -714,6 +714,79 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Log.e(TAG, "Failed to save PDF from trusted WebView.", error);
             runOnUiThread(() -> Toast.makeText(MainActivity.this,
                     "PDF gagal disimpan. Silakan coba lagi.", Toast.LENGTH_LONG).show());
+            return false;
+        }
+    }
+
+    private String safeXlsxFileName(String suppliedName) {
+        String name = suppliedName == null ? "laporan-rental-outdoor.xlsx" : suppliedName;
+        name = name.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (name.length() > 120) name = name.substring(name.length() - 120);
+        if (!name.toLowerCase(java.util.Locale.ROOT).endsWith(".xlsx")) name += ".xlsx";
+        return name;
+    }
+
+    private boolean saveXlsxPayload(String base64Payload, String suppliedName) {
+        if (!isTrustedAppPage() || base64Payload == null || base64Payload.length() > 32 * 1024 * 1024) {
+            Log.w(TAG, "Rejected XLSX save request: untrusted origin or invalid payload size.");
+            return false;
+        }
+
+        Uri destination = null;
+        try {
+            byte[] bytes = Base64.decode(base64Payload, Base64.DEFAULT);
+            // XLSX is a ZIP-based format; reject a payload without a ZIP local-file header.
+            if (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4b
+                    || bytes[2] != 0x03 || bytes[3] != 0x04) {
+                Log.w(TAG, "Rejected XLSX save request: invalid workbook signature.");
+                return false;
+            }
+
+            String fileName = safeXlsxFileName(suppliedName);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+                values.put(MediaStore.MediaColumns.MIME_TYPE,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                destination = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (destination == null) throw new java.io.IOException("Tidak dapat membuat berkas di Downloads.");
+
+                try (OutputStream output = getContentResolver().openOutputStream(destination)) {
+                    if (output == null) throw new java.io.IOException("Tidak dapat menulis berkas Excel.");
+                    output.write(bytes);
+                    output.flush();
+                }
+                ContentValues published = new ContentValues();
+                published.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                getContentResolver().update(destination, published, null, null);
+            } else {
+                if (!permissionManager.isStoragePermissionGranted()) {
+                    Log.w(TAG, "Excel save requires legacy storage permission.");
+                    return false;
+                }
+                File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (!downloads.exists() && !downloads.mkdirs()) throw new java.io.IOException("Folder Downloads tidak tersedia.");
+                File outputFile = new File(downloads, fileName);
+                try (FileOutputStream output = new FileOutputStream(outputFile)) {
+                    output.write(bytes);
+                    output.flush();
+                }
+                destination = Uri.fromFile(outputFile);
+            }
+
+            runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "Excel disimpan di Downloads/" + safeXlsxFileName(suppliedName), Toast.LENGTH_LONG).show());
+            Log.d(TAG, "XLSX saved to Downloads.");
+            return true;
+        } catch (Exception error) {
+            if (destination != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try { getContentResolver().delete(destination, null, null); } catch (Exception ignored) { }
+            }
+            Log.e(TAG, "Failed to save XLSX from trusted WebView.", error);
+            runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "Excel gagal disimpan. Silakan coba lagi.", Toast.LENGTH_LONG).show());
             return false;
         }
     }
@@ -1122,6 +1195,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         @JavascriptInterface
         public boolean savePdfFromBase64(String base64Payload, String fileName) {
             return savePdfPayload(base64Payload, fileName);
+        }
+
+        @JavascriptInterface
+        public boolean saveXlsxFromBase64(String base64Payload, String fileName) {
+            return saveXlsxPayload(base64Payload, fileName);
         }
 
         @JavascriptInterface
